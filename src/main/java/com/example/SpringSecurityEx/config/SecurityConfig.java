@@ -18,6 +18,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity  //Saying that use this class for security not default one
@@ -25,18 +26,22 @@ public class SecurityConfig {
 
     @Autowired
     private UserDetailsService userDetailsService;
-
+    @Autowired
+    private JwtFilter jwtFilter;
 
     //The below method is used to create the security filter chain and use that for authentication
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(customizer -> customizer.disable())  //It will disable the csrf token
-                .authorizeHttpRequests(request -> request
+        return http.csrf(customizer -> customizer.disable())  //It will disable the csrf token
+                   .authorizeHttpRequests(request -> request
                         .requestMatchers("/register","/login").permitAll() //It will allow the register and login requests without authentication
                         .anyRequest().authenticated()) //It will authenticate all the requests
 
                 .httpBasic(Customizer.withDefaults()) //To enable the default basic authentication through Rest API like Postman
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));  //To make the session stateless
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class) //Use the jwt filter before the username password authentication filter
+                .build();
+        //To make the session stateless
         //        http.formLogin(Customizer.withDefaults()); //To enable the default login page
 
 
@@ -47,7 +52,7 @@ public class SecurityConfig {
 //            }
 //        };
 //        http.csrf(custCsrf.disable());
-        return http.build();
+
     }
     //The below method is used to create the in memory user details manager and use that for authentication
 //    @Bean
